@@ -1,0 +1,7 @@
+{
+  "name": "EduEcho: Smart School PA System",
+  "description": "A centralized AI-powered announcement system for schools featuring targeted delivery, high-quality text-to-speech, and automated daily rituals.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
