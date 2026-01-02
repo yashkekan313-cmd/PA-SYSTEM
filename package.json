@@ -5,7 +5,7 @@
   "description": "Smart School PA System",
   "scripts": {
     "start": "serve .",
-    "build": "mkdir -p dist && cp -r components services dist/ && cp index.html index.tsx App.tsx types.ts constants.tsx metadata.json vercel.json dist/ 2>/dev/null || true"
+    "build": "mkdir -p dist && cp -r components services index.html index.tsx App.tsx types.ts constants.tsx metadata.json dist/"
   },
   "dependencies": {
     "serve": "^14.2.0"
