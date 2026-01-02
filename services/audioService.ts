@@ -9,22 +9,12 @@ export function decodeBase64(base64: string): Uint8Array {
   return bytes;
 }
 
-export function encodeBase64(bytes: Uint8Array): string {
-  let binary = '';
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-export async function decodeAudioData(
+export async function decodePCMData(
   data: Uint8Array,
   ctx: AudioContext,
   sampleRate: number,
   numChannels: number,
 ): Promise<AudioBuffer> {
-  // Safe way to get Int16 view
   const dataInt16 = new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2);
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
@@ -56,53 +46,66 @@ export class PAAudioPlayer {
     return ctx;
   }
 
+  /**
+   * For Gemini TTS (Raw 16-bit PCM)
+   */
   async playPCM(base64Data: string) {
     const ctx = await this.resume();
-    
     try {
       const bytes = decodeBase64(base64Data);
-      const audioBuffer = await decodeAudioData(bytes, ctx, 24000, 1);
-      
+      const audioBuffer = await decodePCMData(bytes, ctx, 24000, 1);
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(ctx.destination);
-      
       return new Promise((resolve) => {
         source.onended = resolve;
         source.start();
       });
     } catch (error) {
-      console.error("PA SYSTEM: PCM Playback Error:", error);
+      console.error("PA SYSTEM: PCM Error", error);
+    }
+  }
+
+  /**
+   * For Recorded Voice (WebM/AAC containers)
+   */
+  async playVoice(base64Data: string) {
+    const ctx = await this.resume();
+    try {
+      const bytes = decodeBase64(base64Data);
+      // Use browser's native decoder for containerized audio (recorded mic)
+      const audioBuffer = await ctx.decodeAudioData(bytes.buffer);
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(ctx.destination);
+      return new Promise((resolve) => {
+        source.onended = resolve;
+        source.start();
+      });
+    } catch (error) {
+      console.error("PA SYSTEM: Voice Decode Error", error);
+      // Fallback: If it's a file, we can also use HTMLAudioElement
+      return this.playURL(`data:audio/webm;base64,${base64Data}`);
     }
   }
 
   async playURL(url: string) {
-    // Ensuring the AudioContext is resumed before playing external media
     await this.resume();
-    
     return new Promise((resolve, reject) => {
       const audio = new Audio();
       audio.crossOrigin = "anonymous";
       audio.src = url;
-      
       const onEnded = () => {
         audio.removeEventListener('ended', onEnded);
         resolve(true);
       };
-      
       const onError = (e: any) => {
         audio.removeEventListener('error', onError);
-        console.error("PA SYSTEM: URL Playback Error:", e);
         reject(e);
       };
-
       audio.addEventListener('ended', onEnded);
       audio.addEventListener('error', onError);
-      
-      audio.play().catch(err => {
-        console.error("PA SYSTEM: Play Promise blocked:", err);
-        reject(err);
-      });
+      audio.play().catch(reject);
     });
   }
 }
@@ -131,8 +134,8 @@ export class VoiceRecorder {
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
-          const base64data = reader.result as string;
-          resolve(base64data.split(',')[1]);
+          const base64data = (reader.result as string).split(',')[1];
+          resolve(base64data);
         };
       };
       this.mediaRecorder.stop();

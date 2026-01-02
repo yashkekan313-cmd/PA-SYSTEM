@@ -8,7 +8,7 @@ import ReceiverInterface from './components/ReceiverInterface';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
-  const [appMode, setAppMode] = useState<'ADMIN' | 'RECEIVER' | null>(() => {
+  const [appMode, setAppMode] = useState<'ADMIN' | 'RECEIVER' | 'GLOBAL_RECEIVER' | null>(() => {
     return localStorage.getItem('paSystem_appMode') as any;
   });
 
@@ -24,7 +24,7 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleSetMode = (mode: 'ADMIN' | 'RECEIVER') => {
+  const handleSetMode = (mode: 'ADMIN' | 'RECEIVER' | 'GLOBAL_RECEIVER') => {
     setAppMode(mode);
     localStorage.setItem('paSystem_appMode', mode);
   };
@@ -57,7 +57,13 @@ const App: React.FC = () => {
               onClick={() => handleSetMode('RECEIVER')}
               className="w-full py-4 px-6 bg-white border-2 border-slate-200 rounded-2xl font-bold text-slate-700 hover:border-blue-500 hover:text-blue-600 transition-all shadow-sm flex items-center justify-center gap-3"
             >
-              <i className="fas fa-desktop text-blue-500"></i> Classroom Receiver
+              <i className="fas fa-door-open text-blue-500"></i> Classroom Receiver
+            </button>
+            <button 
+              onClick={() => handleSetMode('GLOBAL_RECEIVER')}
+              className="w-full py-4 px-6 bg-white border-2 border-slate-200 rounded-2xl font-bold text-slate-700 hover:border-blue-500 hover:text-blue-600 transition-all shadow-sm flex items-center justify-center gap-3"
+            >
+              <i className="fas fa-broadcast-tower text-blue-500"></i> Whole School Receiver
             </button>
           </div>
         </div>
@@ -73,9 +79,12 @@ const App: React.FC = () => {
             path="/" 
             element={
               appMode === 'ADMIN' ? (
-                session ? <AdminDashboard user={session.user} onLogout={clearMode} /> : <Auth />
+                session ? <AdminDashboard user={session.user} onLogout={clearMode} /> : <Auth onBack={clearMode} />
               ) : (
-                <ReceiverInterface onExit={clearMode} />
+                <ReceiverInterface 
+                  onExit={clearMode} 
+                  isGlobalMode={appMode === 'GLOBAL_RECEIVER'} 
+                />
               )
             } 
           />
