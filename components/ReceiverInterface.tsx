@@ -30,6 +30,7 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
     }
   });
   const [isPlaying, setIsPlaying] = useState(false);
+  const [currentAction, setCurrentAction] = useState<string>('');
   const [status, setStatus] = useState<'OFFLINE' | 'ONLINE' | 'CONNECTING'>('OFFLINE');
   const [lastAnnouncement, setLastAnnouncement] = useState<Announcement | null>(null);
   const playQueue = useRef<Announcement[]>([]);
@@ -57,7 +58,6 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
         { event: 'INSERT', schema: 'public', table: 'announcements' }, 
         (payload) => {
           const announce = payload.new as Announcement;
-          console.log("Transmission received:", announce);
           
           let forMe = false;
           if (announce.target_mode === 'WHOLE_SCHOOL') {
@@ -90,6 +90,7 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
   const processQueue = async () => {
     if (playQueue.current.length === 0) {
       setIsPlaying(false);
+      setCurrentAction('');
       return;
     }
 
@@ -99,34 +100,42 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
 
     try {
       if (announce.type === 'text') {
+        setCurrentAction('Broadcasting Announcement...');
         const audio = await generateTTS(safeStr(announce.content));
         await paPlayer.playPCM(audio);
       } else if (announce.type === 'audio') {
+        setCurrentAction('Receiving Voice Message...');
         await paPlayer.playPCM(safeStr(announce.content));
       } else if (announce.type === 'anthem' || announce.type === 'vande') {
+        const isAnthem = announce.type === 'anthem';
         const ritualUrl = RITUAL_SONGS[announce.type];
-        const introText = announce.type === 'anthem' 
-          ? "Attention school. Please stand for the National Anthem." 
-          : "Attention school. Playing Vande Mataram.";
         
-        const introAudio = await generateTTS(introText);
-        await paPlayer.playPCM(introAudio);
-        
-        // Use standard URL player for the MP3 files
+        // 1. Play Intro
+        try {
+          setCurrentAction('Preparing Ritual...');
+          const introText = isAnthem 
+            ? "Attention school. Please stand for the National Anthem." 
+            : "Attention school. Playing Vande Mataram.";
+          const introAudio = await generateTTS(introText);
+          await paPlayer.playPCM(introAudio);
+        } catch (e) { console.warn("Intro TTS failed, continuing to ritual song", e); }
+
+        // 2. Play Song
+        setCurrentAction(isAnthem ? 'National Anthem' : 'Vande Mataram');
         await paPlayer.playURL(ritualUrl);
       }
     } catch (err) {
-      console.error("Audio playback error:", err);
+      console.error("Audio sequence error:", err);
     } finally {
-      // Pause between back-to-back announcements
-      setTimeout(() => processQueue(), 2000);
+      setCurrentAction('Transmission Ended');
+      setTimeout(() => processQueue(), 1500);
     }
   };
 
-  const unlockAudio = () => {
+  const unlockAudio = async () => {
+    // Explicitly resume the context on the user's gesture
+    await paPlayer.resume();
     setIsAudioUnlocked(true);
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    ctx.resume();
   };
 
   const handleSaveConfig = () => {
@@ -192,11 +201,14 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
             <i className="fas fa-broadcast-tower"></i>
           </div>
           <div className="text-white">
-            <h2 className="text-3xl font-black tracking-tight">SYSTEM READY</h2>
-            <p className="text-slate-400 mt-4 font-medium">Terminal connected for <br/><span className="text-blue-400 font-bold">{safeStr(config.grade)} - {safeStr(config.division)}</span></p>
+            <h2 className="text-3xl font-black tracking-tight uppercase">Terminal Ready</h2>
+            <p className="text-slate-400 mt-4 font-medium italic">Station: {safeStr(config.grade)} - Div {safeStr(config.division)}</p>
           </div>
-          <button onClick={unlockAudio} className="w-full py-5 bg-white text-slate-950 rounded-2xl font-black text-lg active:scale-95 transition-all uppercase tracking-[0.2em] shadow-2xl">
-            Activate PA
+          <button 
+            onClick={unlockAudio} 
+            className="w-full py-5 bg-white text-slate-950 rounded-2xl font-black text-lg active:scale-95 transition-all uppercase tracking-[0.2em] shadow-2xl hover:bg-blue-50"
+          >
+            Activate Station
           </button>
         </div>
       </div>
@@ -231,9 +243,15 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
             </div>
             <div className="p-12 bg-white/5 border border-white/10 rounded-[4rem] backdrop-blur-3xl shadow-2xl relative overflow-hidden group">
               <div className="absolute inset-0 bg-blue-600/5 group-hover:bg-blue-600/10 transition-colors"></div>
-              <p className="text-blue-400 font-black uppercase text-[10px] tracking-[0.4em] mb-6 relative">Live Audio Stream</p>
-              <p className="text-3xl sm:text-4xl font-light italic leading-relaxed text-slate-100 relative">
-                "{lastAnnouncement?.type === 'text' ? safeStr(lastAnnouncement.content) : 'Receiving high-priority audio...'}"
+              <p className="text-blue-400 font-black uppercase text-[10px] tracking-[0.4em] mb-6 relative">
+                {currentAction || 'Live Audio Stream'}
+              </p>
+              <p className="text-2xl sm:text-3xl font-light italic leading-relaxed text-slate-100 relative">
+                {lastAnnouncement?.type === 'text' 
+                  ? `"${safeStr(lastAnnouncement.content)}"` 
+                  : (lastAnnouncement?.type === 'anthem' || lastAnnouncement?.type === 'vande')
+                    ? "Performing official school ritual..."
+                    : "Receiving high-priority voice transmission..."}
               </p>
             </div>
           </div>
