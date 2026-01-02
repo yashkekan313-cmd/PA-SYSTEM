@@ -7,7 +7,7 @@ import { generateTTS } from '../services/geminiService';
 import { paPlayer } from '../services/audioService';
 
 /**
- * Official School Ritual Audio Links
+ * Official School Ritual Audio Links - Stored in Supabase
  */
 const RITUAL_SONGS: Record<string, string> = {
   'anthem': 'https://reyfxiecqhyqxmszxvnn.supabase.co/storage/v1/object/public/Announcements/Jana%20Gana%20Mana%20(HD)%20-%20National%20Anthem%20With%20Lyrics%20-%20Best%20Patriotic%20Song.mp3', 
@@ -22,7 +22,7 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
   const [isConfigured, setIsConfigured] = useState(false);
   const [isAudioUnlocked, setIsAudioUnlocked] = useState(false);
   const [config, setConfig] = useState<ReceiverConfig>(() => {
-    const saved = localStorage.getItem('eduEcho_receiverConfig');
+    const saved = localStorage.getItem('paSystem_receiverConfig');
     try {
       return saved ? JSON.parse(saved) : { grade: '', division: '' };
     } catch {
@@ -118,14 +118,14 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
             : "Attention school. Playing Vande Mataram.";
           const introAudio = await generateTTS(introText);
           await paPlayer.playPCM(introAudio);
-        } catch (e) { console.warn("Intro TTS failed, continuing to ritual song", e); }
+        } catch (e) { console.warn("Intro TTS failed", e); }
 
         // 2. Play Song
-        setCurrentAction(isAnthem ? 'National Anthem' : 'Vande Mataram');
+        setCurrentAction(isAnthem ? 'Playing National Anthem' : 'Playing Vande Mataram');
         await paPlayer.playURL(ritualUrl);
       }
     } catch (err) {
-      console.error("Audio sequence error:", err);
+      console.error("PA SYSTEM Queue Error:", err);
     } finally {
       setCurrentAction('Transmission Ended');
       setTimeout(() => processQueue(), 1500);
@@ -133,15 +133,20 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
   };
 
   const unlockAudio = async () => {
-    // Explicitly resume the context on the user's gesture
     await paPlayer.resume();
     setIsAudioUnlocked(true);
   };
 
   const handleSaveConfig = () => {
     if (!config.grade || !config.division) return;
-    localStorage.setItem('eduEcho_receiverConfig', JSON.stringify(config));
+    localStorage.setItem('paSystem_receiverConfig', JSON.stringify(config));
     setIsConfigured(true);
+  };
+
+  const handleExit = () => {
+    if (confirm("Are you sure you want to disconnect this terminal?")) {
+      onExit();
+    }
   };
 
   if (!isConfigured) {
@@ -152,7 +157,7 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
             <div className="h-20 w-20 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-4xl mx-auto mb-6 shadow-xl shadow-blue-100">
               <i className="fas fa-school"></i>
             </div>
-            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Terminal Setup</h2>
+            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight uppercase">Terminal Setup</h2>
             <p className="text-slate-500 mt-2 font-medium">Classroom receiver configuration</p>
           </div>
           <div className="space-y-4">
@@ -183,9 +188,12 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
             <button 
               disabled={!config.grade || !config.division}
               onClick={handleSaveConfig}
-              className="w-full py-5 bg-blue-600 text-white rounded-2xl font-bold shadow-xl shadow-blue-200 active:scale-95 transition-all disabled:opacity-50 text-lg"
+              className="w-full py-5 bg-blue-600 text-white rounded-2xl font-bold shadow-xl shadow-blue-200 active:scale-95 transition-all disabled:opacity-50 text-lg uppercase tracking-widest"
             >
               Secure Connection
+            </button>
+            <button onClick={onExit} className="w-full py-3 text-slate-400 font-bold hover:text-slate-600 transition-all text-xs uppercase tracking-widest">
+              Go Back
             </button>
           </div>
         </div>
@@ -195,13 +203,13 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
 
   if (!isAudioUnlocked) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
         <div className="space-y-8 max-w-sm">
           <div className="w-32 h-32 bg-blue-600 rounded-full flex items-center justify-center text-white text-4xl mx-auto shadow-2xl animate-pulse ring-8 ring-blue-900/50">
             <i className="fas fa-broadcast-tower"></i>
           </div>
           <div className="text-white">
-            <h2 className="text-3xl font-black tracking-tight uppercase">Terminal Ready</h2>
+            <h2 className="text-3xl font-black tracking-tight uppercase">PA SYSTEM READY</h2>
             <p className="text-slate-400 mt-4 font-medium italic">Station: {safeStr(config.grade)} - Div {safeStr(config.division)}</p>
           </div>
           <button 
@@ -209,6 +217,9 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
             className="w-full py-5 bg-white text-slate-950 rounded-2xl font-black text-lg active:scale-95 transition-all uppercase tracking-[0.2em] shadow-2xl hover:bg-blue-50"
           >
             Activate Station
+          </button>
+          <button onClick={handleExit} className="text-slate-500 font-black uppercase text-xs tracking-widest hover:text-white transition-all">
+            Exit System
           </button>
         </div>
       </div>
@@ -223,7 +234,7 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
       </div>
 
       <div className="absolute top-10 left-10 flex items-center gap-4 bg-white/5 p-4 rounded-3xl backdrop-blur-md border border-white/10">
-        <div className="w-12 h-12 bg-white text-slate-950 rounded-2xl flex items-center justify-center font-black text-xl shadow-xl">EE</div>
+        <div className="w-12 h-12 bg-white text-slate-950 rounded-2xl flex items-center justify-center font-black text-xl shadow-xl">PA</div>
         <div>
           <p className="font-bold text-lg tracking-tight">{safeStr(config.grade)} - {safeStr(config.division)}</p>
           <div className="flex items-center gap-2">
@@ -232,6 +243,13 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
           </div>
         </div>
       </div>
+
+      <button 
+        onClick={handleExit}
+        className="absolute top-10 right-10 flex items-center gap-2 px-6 py-4 bg-white/5 hover:bg-red-500/20 text-slate-400 hover:text-red-500 rounded-2xl border border-white/10 transition-all font-black text-[10px] uppercase tracking-widest backdrop-blur-md"
+      >
+        <i className="fas fa-power-off"></i> Exit Station
+      </button>
 
       <div className="z-10 text-center w-full max-w-4xl space-y-12">
         {isPlaying ? (
@@ -250,15 +268,15 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit }) => {
                 {lastAnnouncement?.type === 'text' 
                   ? `"${safeStr(lastAnnouncement.content)}"` 
                   : (lastAnnouncement?.type === 'anthem' || lastAnnouncement?.type === 'vande')
-                    ? "Performing official school ritual..."
-                    : "Receiving high-priority voice transmission..."}
+                    ? `National Ritual Performance In Progress...`
+                    : "Receiving voice transmission..."}
               </p>
             </div>
           </div>
         ) : (
           <div className="opacity-10 flex flex-col items-center gap-8 py-20">
             <i className="fas fa-satellite-dish text-9xl animate-pulse"></i>
-            <h2 className="text-2xl font-bold tracking-[0.8em] uppercase text-slate-400">Monitoring School PA</h2>
+            <h2 className="text-2xl font-bold tracking-[0.8em] uppercase text-slate-400">Monitoring Station</h2>
           </div>
         )}
       </div>

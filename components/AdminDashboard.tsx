@@ -91,7 +91,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
       alert('Broadcast Error: ' + error.message);
     } else {
       setText('');
-      // Local preview for admin
+      // Local preview for admin (optional, can be disabled if distracting)
       if (announceType === 'text') {
         try {
           const audio = await generateTTS(content);
@@ -131,12 +131,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
             <i className="fas fa-microphone-alt text-2xl"></i>
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Admin Console</h1>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">PA SYSTEM Console</h1>
             <p className="text-slate-400 text-xs font-bold tracking-widest">{safeStr(user?.email)}</p>
           </div>
         </div>
         <button onClick={handleLogoutClick} className="px-6 py-3 bg-slate-50 text-slate-600 hover:text-red-600 font-black rounded-2xl border border-slate-200 transition-all flex items-center gap-2 text-sm uppercase tracking-widest">
-          <i className="fas fa-power-off"></i> Exit
+          <i className="fas fa-power-off"></i> Exit Console
         </button>
       </header>
 
@@ -251,7 +251,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
                   <span className="text-4xl group-hover:scale-125 transition-transform">{safeStr(ritual.icon)}</span>
                   <div className="text-left">
                     <p className="font-black text-slate-800 text-sm uppercase tracking-widest">{safeStr(ritual.name)}</p>
-                    <p className="text-[10px] text-slate-400 font-black uppercase mt-1">Official Song</p>
+                    <p className="text-[10px] text-slate-400 font-black uppercase mt-1">Real-time Ritual</p>
                   </div>
                 </button>
               ))}
@@ -259,7 +259,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
           </div>
 
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm h-[400px] flex flex-col">
-            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">LIVE LOGS</h2>
+            <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">TRANSMISSION LOGS</h2>
             <div className="overflow-y-auto space-y-4 flex-1 pr-2 scrollbar-hide">
               {history.map(item => (
                 <div key={item.id} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 text-xs">
@@ -277,7 +277,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
               {history.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4">
                    <i className="fas fa-history text-4xl opacity-20"></i>
-                   <p className="text-[10px] font-black uppercase tracking-widest">No Recent Logs</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest">No Transmissions</p>
                 </div>
               )}
             </div>

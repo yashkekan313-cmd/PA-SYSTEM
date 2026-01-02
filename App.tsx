@@ -9,7 +9,7 @@ import ReceiverInterface from './components/ReceiverInterface';
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
   const [appMode, setAppMode] = useState<'ADMIN' | 'RECEIVER' | null>(() => {
-    return localStorage.getItem('eduEcho_appMode') as any;
+    return localStorage.getItem('paSystem_appMode') as any;
   });
 
   useEffect(() => {
@@ -26,12 +26,13 @@ const App: React.FC = () => {
 
   const handleSetMode = (mode: 'ADMIN' | 'RECEIVER') => {
     setAppMode(mode);
-    localStorage.setItem('eduEcho_appMode', mode);
+    localStorage.setItem('paSystem_appMode', mode);
   };
 
   const clearMode = () => {
     setAppMode(null);
-    localStorage.removeItem('eduEcho_appMode');
+    localStorage.removeItem('paSystem_appMode');
+    localStorage.removeItem('paSystem_receiverConfig');
   };
 
   if (!appMode) {
@@ -42,8 +43,8 @@ const App: React.FC = () => {
             <i className="fas fa-bullhorn"></i>
           </div>
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">EduEcho</h1>
-            <p className="text-slate-500 mt-2 font-medium">Smart School PA System</p>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">PA SYSTEM</h1>
+            <p className="text-slate-500 mt-2 font-medium">Smart School Announcement System</p>
           </div>
           <div className="space-y-4 pt-4">
             <button 

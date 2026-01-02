@@ -1,11 +1,7 @@
 
 import React, { useState } from 'react';
-// Changed User to UserProfile from types.ts
-import { UserProfile } from '../types';
-// Changed non-existent GRADES and DIVISIONS to GRADES_LIST and SCHOOL_HIERARCHY
 import { GRADES_LIST, SCHOOL_HIERARCHY } from '../constants';
 
-// Local interface for the login data structure
 interface LoginUser {
   role: 'ADMIN' | 'RECEIVER';
   grade?: string;
@@ -18,7 +14,6 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [role, setRole] = useState<'ADMIN' | 'RECEIVER'>('ADMIN');
-  // Initialize grade with the first available grade string from constants
   const [grade, setGrade] = useState<string>(GRADES_LIST[0]);
   const [division, setDivision] = useState<string>('A');
   const [pin, setPin] = useState('');
@@ -32,7 +27,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     onLogin({ role, grade, division });
   };
 
-  // Get current divisions for the selected grade
   const currentDivisions = SCHOOL_HIERARCHY[grade] || [];
 
   return (
@@ -42,11 +36,11 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           <div className="mx-auto h-16 w-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl mb-6">
             <i className="fas fa-bullhorn"></i>
           </div>
-          <h2 className="text-center text-3xl font-extrabold text-slate-900">
-            EduEcho
+          <h2 className="text-center text-3xl font-extrabold text-slate-900 uppercase tracking-tighter">
+            PA SYSTEM
           </h2>
-          <p className="mt-2 text-center text-sm text-slate-600">
-            Smart School PA Announcement System
+          <p className="mt-2 text-center text-sm text-slate-600 font-medium">
+            Smart School Announcement System
           </p>
         </div>
 
@@ -90,7 +84,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     onChange={(e) => {
                       const newGrade = e.target.value;
                       setGrade(newGrade);
-                      // Update division when grade changes to stay within valid options
                       if (SCHOOL_HIERARCHY[newGrade] && SCHOOL_HIERARCHY[newGrade].length > 0) {
                         setDivision(SCHOOL_HIERARCHY[newGrade][0]);
                       }

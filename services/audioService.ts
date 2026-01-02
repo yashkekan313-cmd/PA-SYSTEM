@@ -24,7 +24,7 @@ export async function decodeAudioData(
   sampleRate: number,
   numChannels: number,
 ): Promise<AudioBuffer> {
-  // Safe way to get Int16 view even if buffer is shared or not perfectly aligned
+  // Safe way to get Int16 view
   const dataInt16 = new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2);
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
@@ -32,7 +32,6 @@ export async function decodeAudioData(
   for (let channel = 0; channel < numChannels; channel++) {
     const channelData = buffer.getChannelData(channel);
     for (let i = 0; i < frameCount; i++) {
-      // Normalize 16-bit PCM to [-1.0, 1.0]
       channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
     }
   }
@@ -42,7 +41,7 @@ export async function decodeAudioData(
 export class PAAudioPlayer {
   private ctx: AudioContext | null = null;
 
-  initCtx() {
+  private getCtx(): AudioContext {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     }
@@ -50,7 +49,7 @@ export class PAAudioPlayer {
   }
 
   async resume() {
-    const ctx = this.initCtx();
+    const ctx = this.getCtx();
     if (ctx.state === 'suspended') {
       await ctx.resume();
     }
@@ -73,11 +72,14 @@ export class PAAudioPlayer {
         source.start();
       });
     } catch (error) {
-      console.error("PCM Playback Error:", error);
+      console.error("PA SYSTEM: PCM Playback Error:", error);
     }
   }
 
   async playURL(url: string) {
+    // Ensuring the AudioContext is resumed before playing external media
+    await this.resume();
+    
     return new Promise((resolve, reject) => {
       const audio = new Audio();
       audio.crossOrigin = "anonymous";
@@ -90,7 +92,7 @@ export class PAAudioPlayer {
       
       const onError = (e: any) => {
         audio.removeEventListener('error', onError);
-        console.error("URL Playback Error:", e);
+        console.error("PA SYSTEM: URL Playback Error:", e);
         reject(e);
       };
 
@@ -98,7 +100,7 @@ export class PAAudioPlayer {
       audio.addEventListener('error', onError);
       
       audio.play().catch(err => {
-        console.error("Audio Play Promise rejected:", err);
+        console.error("PA SYSTEM: Play Promise blocked:", err);
         reject(err);
       });
     });
