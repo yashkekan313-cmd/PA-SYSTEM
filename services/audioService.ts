@@ -41,7 +41,11 @@ export class PAAudioPlayer {
   async resume() {
     const ctx = this.getCtx();
     if (ctx.state === 'suspended') {
-      await ctx.resume();
+      try {
+        await ctx.resume();
+      } catch (e) {
+        console.warn("PA SYSTEM: AudioContext resume failed", e);
+      }
     }
     return ctx;
   }
@@ -62,7 +66,7 @@ export class PAAudioPlayer {
         source.start();
       });
     } catch (error) {
-      console.error("PA SYSTEM: PCM Error", error);
+      console.error("PA SYSTEM: PCM Playback Error", error);
     }
   }
 
@@ -73,8 +77,8 @@ export class PAAudioPlayer {
     const ctx = await this.resume();
     try {
       const bytes = decodeBase64(base64Data);
-      // Use browser's native decoder for containerized audio (recorded mic)
-      const audioBuffer = await ctx.decodeAudioData(bytes.buffer);
+      // Native decoder handles browser-recorded blobs (WebM/Ogg/AAC)
+      const audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(ctx.destination);
@@ -83,29 +87,28 @@ export class PAAudioPlayer {
         source.start();
       });
     } catch (error) {
-      console.error("PA SYSTEM: Voice Decode Error", error);
-      // Fallback: If it's a file, we can also use HTMLAudioElement
+      console.error("PA SYSTEM: Voice Decoding failed, trying HTMLAudio fallback", error);
       return this.playURL(`data:audio/webm;base64,${base64Data}`);
     }
   }
 
   async playURL(url: string) {
+    // We don't necessarily need the AudioContext for HTMLAudioElement, 
+    // but resuming it helps keep the system awake.
     await this.resume();
     return new Promise((resolve, reject) => {
       const audio = new Audio();
       audio.crossOrigin = "anonymous";
       audio.src = url;
-      const onEnded = () => {
-        audio.removeEventListener('ended', onEnded);
-        resolve(true);
-      };
-      const onError = (e: any) => {
-        audio.removeEventListener('error', onError);
+      audio.onended = () => resolve(true);
+      audio.onerror = (e) => {
+        console.error("PA SYSTEM: Ritual/URL Playback Error", e);
         reject(e);
       };
-      audio.addEventListener('ended', onEnded);
-      audio.addEventListener('error', onError);
-      audio.play().catch(reject);
+      audio.play().catch((err) => {
+        console.error("PA SYSTEM: Audio.play() blocked by browser", err);
+        reject(err);
+      });
     });
   }
 }
@@ -117,18 +120,24 @@ export class VoiceRecorder {
   private audioChunks: Blob[] = [];
 
   async start() {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    this.mediaRecorder = new MediaRecorder(stream);
-    this.audioChunks = [];
-    this.mediaRecorder.ondataavailable = (event) => {
-      this.audioChunks.push(event.data);
-    };
-    this.mediaRecorder.start();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.mediaRecorder = new MediaRecorder(stream);
+      this.audioChunks = [];
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) this.audioChunks.push(event.data);
+      };
+      this.mediaRecorder.start();
+    } catch (e) {
+      console.error("PA SYSTEM: Microphone access denied", e);
+      throw e;
+    }
   }
 
   async stop(): Promise<string> {
     return new Promise((resolve) => {
-      if (!this.mediaRecorder) return resolve('');
+      if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') return resolve('');
+      
       this.mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
         const reader = new FileReader();

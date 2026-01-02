@@ -24,7 +24,7 @@ const Auth: React.FC<AuthProps> = ({ onBack }) => {
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        alert('Verification email sent!');
+        alert('Admin account created! Check your email to verify.');
       }
     } catch (err: any) {
       setError(err.message);
@@ -34,20 +34,35 @@ const Auth: React.FC<AuthProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-2xl border border-slate-100">
-        <div className="text-center mb-8">
-          <div className="h-16 w-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl mx-auto mb-4"><i className="fas fa-shield-alt"></i></div>
-          <h2 className="text-2xl font-bold text-slate-900">{isLogin ? 'Teacher Portal' : 'Register Admin'}</h2>
+    <div className="min-h-screen flex items-center justify-center px-4 bg-slate-100 font-inter">
+      <div className="max-w-md w-full bg-white p-10 rounded-[3rem] shadow-2xl border border-white">
+        <div className="text-center mb-10">
+          <div className="h-20 w-20 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-4xl mx-auto mb-6 shadow-xl shadow-blue-100">
+            <i className="fas fa-shield-alt"></i>
+          </div>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">{isLogin ? 'PA Console Login' : 'Register Admin'}</h2>
+          <p className="text-slate-400 mt-2 text-xs font-bold uppercase tracking-widest">Authorized Personnel Only</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" placeholder="Email" />
-          <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none" placeholder="Password" />
-          {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-lg border border-red-100">{error}</div>}
-          <button disabled={loading} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold active:scale-95 transition-all">{loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}</button>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-100 outline-none font-bold text-slate-700" placeholder="admin@school.edu" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
+            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-100 outline-none font-bold text-slate-700" placeholder="••••••••" />
+          </div>
+          {error && <div className="p-4 bg-red-50 text-red-600 text-xs font-bold rounded-xl border border-red-100">{error}</div>}
+          <button disabled={loading} className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black active:scale-95 transition-all shadow-xl shadow-blue-100 uppercase tracking-widest mt-4">
+            {loading ? <i className="fas fa-spinner fa-spin"></i> : (isLogin ? 'Secure Sign In' : 'Create Admin Profile')}
+          </button>
         </form>
-        <button onClick={() => setIsLogin(!isLogin)} className="w-full mt-6 text-sm font-semibold text-blue-600">{isLogin ? "Need an account? Sign Up" : "Already registered? Log In"}</button>
-        <button onClick={onBack} className="w-full mt-4 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all">Back to Main Screen</button>
+        <button onClick={() => setIsLogin(!isLogin)} className="w-full mt-8 text-xs font-black text-blue-600 uppercase tracking-widest hover:text-blue-700 transition-all">
+          {isLogin ? "Need access? Request Credentials" : "Already registered? Sign In"}
+        </button>
+        <button onClick={onBack} className="w-full mt-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all flex items-center justify-center gap-2">
+          <i className="fas fa-arrow-left"></i> Return to Main Screen
+        </button>
       </div>
     </div>
   );
