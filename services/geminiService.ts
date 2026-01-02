@@ -2,8 +2,8 @@
 import { GoogleGenAI, Modality } from "@google/genai";
 
 export const generateTTS = async (text: string, voice: string = 'Kore'): Promise<string> => {
-  // Always initialize with the latest key from the environment
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Always initialize with the latest key from the environment directly
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   try {
     const response = await ai.models.generateContent({

@@ -39,9 +39,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
       setIsBroadcasting(true);
       try {
         const audioBase64 = await voiceRecorder.stop();
-        if (audioBase64) await sendAnnouncement('audio', audioBase64);
+        if (audioBase64) {
+          await sendAnnouncement('audio', audioBase64);
+          // Local preview for admin
+          await paPlayer.playVoice(audioBase64);
+        }
       } catch (e) {
-        console.error("Mic stop failed", e);
+        console.error("PA SYSTEM: Mic stop failed", e);
       } finally {
         setIsRecording(false);
         setIsBroadcasting(false);
@@ -51,14 +55,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
         await voiceRecorder.start();
         setIsRecording(true);
       } catch (e) {
-        alert("Microphone access is required for live audio.");
+        alert("Microphone access is required for live audio broadcasting.");
       }
     }
   };
 
   const sendAnnouncement = async (announceType: string, content: string) => {
     if (targetMode === 'SELECTED_GRADE' && (!selectedGrade || selectedDivs.length === 0)) {
-      alert('Please select grade and divisions.');
+      alert('Please select grade and divisions for targeted announcement.');
       return;
     }
 
@@ -72,8 +76,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
     };
 
     const { error } = await supabase.from('announcements').insert([newAnnounce]);
-    if (error) alert('Error: ' + error.message);
-    else setText('');
+    if (error) {
+      alert('Broadcast Error: ' + error.message);
+    } else {
+      setText('');
+    }
   };
 
   const handleTTSSubmit = async () => {
@@ -85,7 +92,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
       const audio = await generateTTS(text);
       if (audio) await paPlayer.playPCM(audio);
     } catch (e) {
-      console.error("Local preview failed", e);
+      console.error("PA SYSTEM: TTS Local Preview Failed", e);
     } finally {
       setIsBroadcasting(false);
     }
@@ -96,7 +103,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
     setIsBroadcasting(true);
     try {
       const ritual = RITUALS.find(r => r.id === ritualId);
-      await sendAnnouncement(ritualId, ritual?.name || '');
+      await sendAnnouncement(ritualId, ritual?.name || 'Ritual');
     } finally {
       setIsBroadcasting(false);
     }

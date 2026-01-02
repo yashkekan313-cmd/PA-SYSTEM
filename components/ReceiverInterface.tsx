@@ -105,25 +105,27 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit, isGlobalM
           await paPlayer.playPCM(audio);
         }
       } else if (announce.type === 'audio') {
-        setCurrentAction('Live Audio Transmission...');
+        setCurrentAction('Live Voice Transmission...');
         await paPlayer.playVoice(announce.content);
       } else if (announce.type === 'anthem' || announce.type === 'vande') {
         const isAnthem = announce.type === 'anthem';
-        setCurrentAction('Preparing Ritual...');
         
         // 1. Play ritual intro
         try {
+          setCurrentAction('Preparing Ritual...');
           const introTxt = isAnthem ? "School, attention. Please stand for the National Anthem." : "School, attention. Playing Vande Mataram.";
           const introAudio = await generateTTS(introTxt);
           if (introAudio) await paPlayer.playPCM(introAudio);
-        } catch (e) { console.warn("Intro failed", e); }
+        } catch (e) { 
+          console.warn("PA SYSTEM: Intro ritual failed", e); 
+        }
 
         // 2. Play ritual song
         setCurrentAction(isAnthem ? 'Performing National Anthem' : 'Performing Vande Mataram');
         await paPlayer.playURL(RITUAL_SONGS[announce.type]);
       }
     } catch (err) {
-      console.error("PA SYSTEM: Playback Failure", err);
+      console.error("PA SYSTEM: Transmission Playback Failure", err);
     } finally {
       setCurrentAction('Ended');
       setTimeout(() => processQueue(), 1200);
@@ -152,7 +154,7 @@ const ReceiverInterface: React.FC<ReceiverInterfaceProps> = ({ onExit, isGlobalM
               <select 
                 value={config.grade} 
                 onChange={(e) => setConfig({ ...config, grade: e.target.value, division: '' })} 
-                className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-300 outline-none font-bold text-slate-700"
+                className="w-full px-5 py-4 rounded-2xl bg-slate-50 border-2 border-transparent focus:border-blue-300 outline-none font-bold text-slate-700 transition-all"
               >
                 <option value="">Choose Grade</option>
                 {GRADES_LIST.map(g => <option key={g} value={g}>{g}</option>)}

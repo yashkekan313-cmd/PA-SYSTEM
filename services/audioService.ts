@@ -15,6 +15,7 @@ export async function decodePCMData(
   sampleRate: number,
   numChannels: number,
 ): Promise<AudioBuffer> {
+  // Safe way to get Int16 view even if buffer is shared or not perfectly aligned
   const dataInt16 = new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2);
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
@@ -22,6 +23,7 @@ export async function decodePCMData(
   for (let channel = 0; channel < numChannels; channel++) {
     const channelData = buffer.getChannelData(channel);
     for (let i = 0; i < frameCount; i++) {
+      // Normalize 16-bit PCM to [-1.0, 1.0]
       channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
     }
   }
@@ -40,11 +42,12 @@ export class PAAudioPlayer {
 
   async resume() {
     const ctx = this.getCtx();
-    if (ctx.state === 'suspended') {
+    // Fix: cast ctx.state to any to permit comparison with 'interrupted', which is non-standard but found in iOS Safari.
+    if (ctx.state === 'suspended' || (ctx.state as any) === 'interrupted') {
       try {
         await ctx.resume();
       } catch (e) {
-        console.warn("PA SYSTEM: AudioContext resume failed", e);
+        console.warn("PA SYSTEM: AudioContext failed to resume automatically", e);
       }
     }
     return ctx;
@@ -58,15 +61,17 @@ export class PAAudioPlayer {
     try {
       const bytes = decodeBase64(base64Data);
       const audioBuffer = await decodePCMData(bytes, ctx, 24000, 1);
+      
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(ctx.destination);
+      
       return new Promise((resolve) => {
         source.onended = resolve;
         source.start();
       });
     } catch (error) {
-      console.error("PA SYSTEM: PCM Playback Error", error);
+      console.error("PA SYSTEM: AI Voice Playback Error", error);
     }
   }
 
@@ -78,6 +83,7 @@ export class PAAudioPlayer {
     try {
       const bytes = decodeBase64(base64Data);
       // Native decoder handles browser-recorded blobs (WebM/Ogg/AAC)
+      // Use slice to avoid sharing buffers during decoding
       const audioBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
@@ -94,19 +100,30 @@ export class PAAudioPlayer {
 
   async playURL(url: string) {
     // We don't necessarily need the AudioContext for HTMLAudioElement, 
-    // but resuming it helps keep the system awake.
+    // but resuming it ensures the device doesn't go to sleep.
     await this.resume();
+    
     return new Promise((resolve, reject) => {
       const audio = new Audio();
       audio.crossOrigin = "anonymous";
       audio.src = url;
-      audio.onended = () => resolve(true);
-      audio.onerror = (e) => {
-        console.error("PA SYSTEM: Ritual/URL Playback Error", e);
+      
+      const onEnded = () => {
+        audio.removeEventListener('ended', onEnded);
+        resolve(true);
+      };
+      
+      const onError = (e: any) => {
+        audio.removeEventListener('error', onError);
+        console.error("PA SYSTEM: URL/Ritual Playback Error", e);
         reject(e);
       };
+
+      audio.addEventListener('ended', onEnded);
+      audio.addEventListener('error', onError);
+      
       audio.play().catch((err) => {
-        console.error("PA SYSTEM: Audio.play() blocked by browser", err);
+        console.error("PA SYSTEM: HTMLAudio Play() blocked by browser policy", err);
         reject(err);
       });
     });
@@ -129,7 +146,7 @@ export class VoiceRecorder {
       };
       this.mediaRecorder.start();
     } catch (e) {
-      console.error("PA SYSTEM: Microphone access denied", e);
+      console.error("PA SYSTEM: Microphone access was denied", e);
       throw e;
     }
   }
