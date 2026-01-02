@@ -1,24 +1,13 @@
+
 {
-  "name": "eduecho:-smart-school-pa-system",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "eduecho-smart-pa",
+  "version": "1.0.0",
+  "description": "Smart School PA System",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "serve .",
+    "build": "echo 'No build step required'"
   },
   "dependencies": {
-    "react-router-dom": "^7.11.0",
-    "@google/genai": "^1.34.0",
-    "@supabase/supabase-js": "2.45.4",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "serve": "^14.2.0"
   }
 }
